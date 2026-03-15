@@ -3,6 +3,7 @@ import pytest
 from pages.login_page import LoginPage
 from pages.product_page import ProductPage
 from pages.basket_page import BasketPage
+import time
 
 @pytest.mark.skip(reason="Пропускаем тест на время")
 @pytest.mark.parametrize('link', [
@@ -59,3 +60,41 @@ def test_guest_cant_see_product_in_basket_opened_from_product_page(browser):
     page.go_to_basket_page()  # переходим в корзину
     basket_page = BasketPage(browser, browser.current_url)
     basket_page.should_be_empty_basket()
+
+
+
+
+@pytest.mark.user_add_to_basket
+class TestUserAddToBasketFromProductPage:
+
+    @pytest.fixture(scope="function", autouse=True)
+    def setup(self, browser):
+        # генерируем уникальный email
+        email = str(time.time()) + "@fakemail.org"
+        password = "Qwer@_ty12345"  # можно любое валидное
+
+        # открываем страницу регистрации
+        link = "http://selenium1py.pythonanywhere.com/accounts/login/"
+        login_page = LoginPage(browser, link)
+        login_page.open()
+
+        # регистрируем нового пользователя
+        login_page.register_new_user(email, password)
+
+        # проверяем, что пользователь залогинен
+        login_page.should_be_authorized_user()
+
+    def test_user_cant_see_success_message(self, browser):
+        link = "http://selenium1py.pythonanywhere.com/catalogue/the-city-and-the-stars_95/"
+        page = ProductPage(browser, link)
+        page.open()
+        page.should_not_be_success_message()
+
+    def test_user_can_add_product_to_basket(self, browser):
+        link = "http://selenium1py.pythonanywhere.com/catalogue/the-city-and-the-stars_95/"
+        page = ProductPage(browser, link)
+        page.open()
+        page.add_product_to_basket()
+        page.should_be_success_message()
+        page.should_be_correct_product_name()
+        page.should_be_correct_price()
